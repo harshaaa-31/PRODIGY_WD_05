@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Weather App</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #111;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+    }
+
+    .container {
+      text-align: center;
+      max-width: 800px;
+      width: 100%;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 40px;
+    }
+
+    .emoji {
+      font-size: 1.5rem;
+      vertical-align: middle;
+    }
+
+    .search-box {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      background: #1e1e1e;
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+
+    .search-box input {
+      padding: 15px;
+      border-radius: 10px;
+      border: none;
+      width: 300px;
+      background-color: #2c2c2c;
+      color: white;
+      font-size: 1rem;
+    }
+
+    .search-box button {
+      padding: 15px 20px;
+      background-color: #facc15;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: transform 0.2s ease;
+    }
+
+    .search-box button:hover {
+      transform: scale(1.05);
+    }
+
+    .weather-display {
+      margin-top: 20px;
+      text-align: left;
+      padding: 20px;
+      background-color: #1a1a1a;
+      border-radius: 20px;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+    }
+
+    .weather-display .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1.2rem;
+      margin-bottom: 20px;
+    }
+
+    .forecast {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .day-card {
+      flex: 1 1 100px;
+      padding: 10px;
+      text-align: center;
+      background-color: #2a2a2a;
+      border-radius: 12px;
+      margin: 5px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    img {
+      width: 50px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1><span class="emoji">🌙</span> Weather App</h1>
+    <div class="search-box">
+      <input type="text" id="cityInput" placeholder="Enter city name...">
+      <button id="getWeatherBtn">Get Weather</button>
+      <button id="locationBtn">📍</button>
+    </div>
+    <div id="weatherResult" class="weather-display hidden"></div>
+  </div>
+
+  <script>
+    const apiKey = "fe699e6eae70e41b2d1f573ea9a79cda"; // 🔁 Replace this with your actual OpenWeatherMap API key
+
+    const getWeatherBtn = document.getElementById('getWeatherBtn');
+    const locationBtn = document.getElementById('locationBtn');
+    const cityInput = document.getElementById('cityInput');
+    const weatherResult = document.getElementById('weatherResult');
+
+    getWeatherBtn.addEventListener('click', () => {
+      const city = cityInput.value.trim();
+      if (city !== '') {
+        getWeatherByCity(city);
+      }
+    });
+
+    locationBtn.addEventListener('click', () => {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const { latitude, longitude } = position.coords;
+        getWeatherByCoords(latitude, longitude);
+      });
+    });
+
+    function getWeatherByCity(city) {
+      fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=metric`)
+        .then(res => res.json())
+        .then(data => displayWeather(data));
+    }
+
+    function getWeatherByCoords(lat, lon) {
+      fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`)
+        .then(res => res.json())
+        .then(data => displayWeather(data));
+    }
+
+    function displayWeather(data) {
+      if (data.cod !== '200') {
+        weatherResult.innerHTML = '<p>City not found.</p>';
+        weatherResult.classList.remove('hidden');
+        return;
+      }
+
+      const city = data.city.name;
+      const country = data.city.country;
+      const current = data.list[0];
+
+      let html = `
+        <div class="header">
+          <div>
+            <strong>${city}, ${country}</strong><br>
+            ${current.weather[0].description}<br>
+            🌡️ ${current.main.temp}°C
+          </div>
+          <div>
+            💧 ${current.main.humidity}%<br>
+            🌬️ ${current.wind.speed} km/h
+          </div>
+        </div>
+        <div class="forecast">
+      `;
+
+      const days = {};
+      for (let item of data.list) {
+        const date = new Date(item.dt_txt);
+        const day = date.toLocaleDateString('en-US', { weekday: 'short' });
+
+        if (!days[day]) {
+          days[day] = {
+            temp: item.main.temp,
+            icon: item.weather[0].icon,
+            min: item.main.temp_min,
+            max: item.main.temp_max,
+          };
+        }
+      }
+
+      for (let day in days) {
+        const d = days[day];
+        html += `
+          <div class="day-card">
+            <strong>${day}</strong><br>
+            <img src="https://openweathermap.org/img/wn/${d.icon}@2x.png" alt=""><br>
+            ${Math.round(d.max)}° / ${Math.round(d.min)}°
+          </div>
+        `;
+      }
+
+      html += `</div>`;
+      weatherResult.innerHTML = html;
+      weatherResult.classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
