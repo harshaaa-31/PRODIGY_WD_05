@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Modern Weather App</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to top, #4facfe, #00f2fe);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 400px;
+      background-color: rgba(0,0,0,0.2);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .search {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .search input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      font-size: 16px;
+    }
+
+    .search button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      background-color: #ffd700;
+      font-weight: bold;
+    }
+
+    .weather-box {
+      text-align: center;
+    }
+
+    .weather-box img {
+      width: 100px;
+    }
+
+    .details {
+      margin-top: 15px;
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 10px;
+      border-radius: 12px;
+    }
+
+    .details p {
+      margin: 8px 0;
+    }
+
+    .date-time {
+      font-size: 0.9rem;
+      margin-top: 5px;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <h2>🌤️ Weather App</h2>
+    <div class="search">
+      <input type="text" id="cityInput" placeholder="Enter city name">
+      <button onclick="getWeatherByCity()">Search</button>
+      <button onclick="getLocationWeather()">📍</button>
+    </div>
+    
+    <div class="weather-box" id="weatherBox">
+      <p>Loading...</p>
+    </div>
+  </div>
+
+  <script>
+    const apiKey = "fe699e6eae70e41b2d1f573ea9a79cda"; // Replace with your API key
+
+    window.onload = () => {
+      getWeatherByCity("Chennai"); // Default stored location
+    };
+
+    function formatDateTime() {
+      const now = new Date();
+      return now.toLocaleString('en-IN', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function getWeatherByCity(cityName = null) {
+      const city = cityName || document.getElementById("cityInput").value.trim();
+      if (!city) return;
+      fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`)
+        .then(res => res.json())
+        .then(data => displayWeather(data))
+        .catch(err => console.error(err));
+    }
+
+    function getLocationWeather() {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const { latitude, longitude } = position.coords;
+        fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric`)
+          .then(res => res.json())
+          .then(data => displayWeather(data))
+          .catch(err => console.error(err));
+      });
+    }
+
+    function displayWeather(data) {
+      const box = document.getElementById("weatherBox");
+
+      if (data.cod !== 200) {
+        box.innerHTML = "<p>City not found. Try again!</p>";
+        return;
+      }
+
+      const icon = data.weather[0].icon;
+      const description = data.weather[0].description;
+      const temp = Math.round(data.main.temp);
+      const feelsLike = Math.round(data.main.feels_like);
+      const humidity = data.main.humidity;
+      const wind = data.wind.speed;
+      const city = data.name;
+      const country = data.sys.country;
+      const dateTime = formatDateTime();
+
+      box.innerHTML = `
+        <h3>${city}, ${country}</h3>
+        <div class="date-time">${dateTime}</div>
+        <img src="https://openweathermap.org/img/wn/${icon}@2x.png" alt="${description}">
+        <h1>${temp}°C</h1>
+        <p>${description.charAt(0).toUpperCase() + description.slice(1)}</p>
+        <div class="details">
+          <p>🌡️ Feels Like: ${feelsLike}°C</p>
+          <p>💧 Humidity: ${humidity}%</p>
+          <p>🌬️ Wind Speed: ${wind} m/s</p>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>
